@@ -1,9 +1,14 @@
-echo "-- Process video"
-echo ${ID}
-echo ${VIDEO_URL}
+echo "-- Download video"
+
+# Does ffmpeg care about the file ending?
+curl "${VIDEO_URL}" --output "${ID}.mp4"
+
+echo "-- Process the video"
+
+# TODO
 
 echo "--- Upload the processed video"
-# buildkite-agent artifact upload "test/results.json"
+buildkite-agent artifact upload "${ID}.mp4"
 
 echo "--- Trigger Zapier pipeline"
 curl -X POST "https://hooks.zapier.com/hooks/catch/12874263/bw07v2l/" \
