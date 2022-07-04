@@ -1,5 +1,6 @@
 steps:
-  - input: "Video URL"
-    fields:
-      - text: "Video URL"
-        key: "url"
+  - label: "process"
+    command: "process.sh"
+    agents:
+      queue: "juliagpu"
+      cuda: "*"
