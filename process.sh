@@ -8,7 +8,7 @@ echo "--- Upload the processed video"
 echo "--- Trigger Zapier pipeline"
 curl -X POST "https://hooks.zapier.com/hooks/catch/12874263/bw07v2l/" \
    -d '{
-       "ID": "${ID}",
-       "BUILDKITE_BUILD_NUMBER": "${BUILDKITE_BUILD_NUMBER}",
-       "BUILDKITE_JOB_ID": "${BUILDKITE_JOB_ID}"
+       "ID": "'${ID}'",
+       "BUILDKITE_BUILD_NUMBER": "'${BUILDKITE_BUILD_NUMBER}'",
+       "BUILDKITE_JOB_ID": "'${BUILDKITE_JOB_ID}'"
     }'
