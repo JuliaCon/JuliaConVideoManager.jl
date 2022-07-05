@@ -13,7 +13,7 @@ julia --project=. -e 'using Pkg; Pkg.instantiate()'
 julia --project=. processing.jl "intro.mov" "${ID}.mp4"
 
 echo "--- Upload the processed video"
-# buildkite-agent artifact upload "${ID}.mp4"
+buildkite-agent artifact upload "out/${ID}.mp4"
 
 # echo "--- Trigger Zapier pipeline"
 # curl -X POST "https://hooks.zapier.com/hooks/catch/12874263/bw07v2l/" \
