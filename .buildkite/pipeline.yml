@@ -1,5 +1,8 @@
 steps:
   - label: "process"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: 1.7
     command: "process.sh"
     agents:
       queue: "juliagpu"
