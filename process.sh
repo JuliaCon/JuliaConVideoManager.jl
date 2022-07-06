@@ -1,6 +1,6 @@
 echo "-- Download the intro"
 
-curl "https://juliacon2020-uploads.s3.us-east-2.amazonaws.com/public/UNKNWN%3Aadditionalvideomaterial%3Aanimation-lo-res-400.mov" -o "intro.mov"
+curl "https://juliacon2020-uploads.s3.us-east-2.amazonaws.com/public/UNKNWN%3Aadditionalvideomaterial%3Ajuliacon2022-ident-prores.mov" -o "intro.mov"
 
 echo "-- Download video"
 
