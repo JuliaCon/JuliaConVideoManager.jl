@@ -23,14 +23,29 @@ module Airtable
         resp = HTTP.get(API * baseId * "/" *sheetId , headers(); query)
         data = JSON3.read(resp.body)
         offset = Base.get(data, :offset, nothing)::Union{Nothing, String}
-        records = data[:records]
+        records = copy(data[:records])
         while offset !== nothing
             query[:offset] = offset
             resp = HTTP.get(API * baseId * "/" *sheetId , headers(); query)
             data = JSON3.read(resp.body)
             offset = Base.get(data, :offset, nothing)::Union{Nothing, String}
-            records = vcat(records, data[:records])
+            records = append!(records, copy(data[:records]))
         end
         return records
+    end
+
+    function patch(baseId, sheetId, records)
+        let headers = headers()
+            headers[Symbol("Content-Type")] = "application/json"
+            body = JSON3.write(records)
+            HTTP.patch(API * baseId * "/" *sheetId, headers, body)
+        end
+    end
+
+    function update!(baseId, sheetId, records)
+        for part in Iterators.partition(records, 10)
+            resp = patch(baseId, sheetId, Dict(:records=>part))
+            @show resp
+        end
     end
 end

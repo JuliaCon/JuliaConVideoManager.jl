@@ -2,7 +2,6 @@ using HTTP
 using JSON3
 using URIs
 using Dates
-using TimeZones
 
 function read_secrets()
     return open(JSON3.read, "client_secret.json")[:installed]
@@ -142,31 +141,4 @@ function find_juliacon2022_videos(items)
     end
 end
 
-# # Get a list of all JuliaLang videos
-# client = load_or_obtain()
-# refresh!(client)
-# uploads = find_uploads(client)
-# items = list_playlist(client, uploads)
-# # Cache the items
-# JSON3.write("items.json", items)
-
-# # Filter the items so that only likely JuliaCon videos are available
-# priv_items = find_private_videos(items)
-# juliacon = find_juliacon2022_videos(priv_items)
-
-# # Extract video ids
-# videoIds = map(juliacon) do video
-#     video[:contentDetails][:videoId]
-# end
-# id = join(videoIds, ",")
-
-# # Map video ID to original filename
-# details = fileDetails(client, id)
-
-# map(details[:items]) do item
-#     item[:id] => item[:fileDetails][:fileName]
-# end
-
-# TODO:
-# # Update Airtable with youtube ID
 # # Update Youtube description with info from airtable
