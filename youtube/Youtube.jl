@@ -1,6 +1,8 @@
 using HTTP
 using JSON3
 using URIs
+using Dates
+using TimeZones
 
 function read_secrets()
     return open(JSON3.read, "client_secret.json")[:installed]
@@ -79,39 +81,92 @@ headers(client::YoutubeClient) = Dict(
     :Accept => "application/json"
 )
 
-function videos(client::YoutubeClient, ;query = Dict{Symbol, String}())
-    JSON3.read(HTTP.get("https://youtube.googleapis.com/youtube/v3/videos", headers(client); query).body)
+function get(endpoint, client::YoutubeClient; query = Dict{Symbol, String}())
+    HTTP.get("https://youtube.googleapis.com/youtube/v3/" * endpoint, headers(client); query)
 end
 
-# curl \
-#   'https://youtube.googleapis.com/youtube/v3/videos?part=fileDetails&id=dP9UuEL00iM&key=[YOUR_API_KEY]' \
-#   --header 'Authorization: Bearer [YOUR_ACCESS_TOKEN]' \
-#   --header 'Accept: application/json' \
-#   --compressed
+function channels(client::YoutubeClient; query = Dict{Symbol, String}())
+    JSON3.read(get("channels", client; query).body)
+end
+
+function playlist_items(client::YoutubeClient; query = Dict{Symbol, String}())
+    JSON3.read(get("playlistItems", client; query).body)
+end
+
+function videos(client::YoutubeClient; query = Dict{Symbol, String}())
+    JSON3.read(get("videos", client; query).body)
+end
+
+function find_uploads(client)
+    response = channels(client, query = Dict{Symbol, String}(:part => "contentDetails", :mine => "true"))
+    return only(response[:items])[:contentDetails][:relatedPlaylists][:uploads]
+end
+
+function list_playlist(client, playlistId)
+    items = JSON3.Object[]
+    nextPageToken = ""
+    while true
+        query = Dict{Symbol, String}(:part => "id,status,contentDetails", :playlistId => playlistId, :maxResults => "50")
+        if !isempty(nextPageToken)
+            query[:pageToken] = nextPageToken
+        end
+        response = playlist_items(client; query)
+        append!(items, response[:items])
+
+        if !haskey(response, :nextPageToken)
+            break
+        end
+
+        nextPageToken = response[:nextPageToken]
+        if isempty(nextPageToken)
+            break
+        end
+    end
+    return items
+end
+
 function fileDetails(client, id)
     videos(client, query = Dict(:part => "fileDetails", :id => id))
 end
 
-# Find Uploads playlist
-#
-# curl \
-#   'https://youtube.googleapis.com/youtube/v3/channels?part=id%2CcontentDetails&id=UC9IuUwwE2xdjQUT_LMLONoA&key=[YOUR_API_KEY]' \
-#   --header 'Authorization: Bearer [YOUR_ACCESS_TOKEN]' \
-#   --header 'Accept: application/json' \
-#   --compressed
+function find_private_videos(items)
+    filter(items) do item
+        item[:status][:privacyStatus] == "private"
+    end
+end
 
-# List playlist
-# curl \
-#   'https://youtube.googleapis.com/youtube/v3/playlistItems?part=id%2Cstatus%2CcontentDetails&playlistId=UU9IuUwwE2xdjQUT_LMLONoA&key=[YOUR_API_KEY]' \
-#   --header 'Authorization: Bearer [YOUR_ACCESS_TOKEN]' \
-#   --header 'Accept: application/json' \
-#   --compressed
+function find_juliacon2022_videos(items)
+    filter(items) do item
+        publishedAt = DateTime(item[:contentDetails][:videoPublishedAt], "yyyy-mm-dd\\THH:MM:SS\\Z")
+        publishedAt >= DateTime("2022-07-04")
+    end
+end
 
-# Update video
-# curl --request PUT \
-#   'https://youtube.googleapis.com/youtube/v3/videos?part=recordingDetails&key=[YOUR_API_KEY]' \
-#   --header 'Authorization: Bearer [YOUR_ACCESS_TOKEN]' \
-#   --header 'Accept: application/json' \
-#   --header 'Content-Type: application/json' \
-#   --data '{"id":"VIDEO_ID","recordingDetails":{"location":{"latitude":"42.3464","longitude":"-71.0975"},"recordingDate":"2013-10-30T23:15:00.000Z"}}' \
-#   --compressed
+# # Get a list of all JuliaLang videos
+# client = load_or_obtain()
+# refresh!(client)
+# uploads = find_uploads(client)
+# items = list_playlist(client, uploads)
+# # Cache the items
+# JSON3.write("items.json", items)
+
+# # Filter the items so that only likely JuliaCon videos are available
+# priv_items = find_private_videos(items)
+# juliacon = find_juliacon2022_videos(priv_items)
+
+# # Extract video ids
+# videoIds = map(juliacon) do video
+#     video[:contentDetails][:videoId]
+# end
+# id = join(videoIds, ",")
+
+# # Map video ID to original filename
+# details = fileDetails(client, id)
+
+# map(details[:items]) do item
+#     item[:id] => item[:fileDetails][:fileName]
+# end
+
+# TODO:
+# # Update Airtable with youtube ID
+# # Update Youtube description with info from airtable
