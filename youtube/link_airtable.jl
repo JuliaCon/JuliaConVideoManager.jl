@@ -66,3 +66,16 @@ records_to_update, found_youtube_ids = collect_table_update(table, ptalx_to_yt)
 
 Airtable.patch(baseId, sheet1Id, Dict(:records => records_to_update))
 
+function publish(client, found_youtube_ids)
+    for (id, _) in found_youtube_ids
+        parts = Dict(
+            :status => Dict(
+                :privacyStatus => "unlisted",
+            ),
+        )
+
+        @show video_update!(client, id, parts)
+    end
+end
+
+publish(client, found_youtube_ids)

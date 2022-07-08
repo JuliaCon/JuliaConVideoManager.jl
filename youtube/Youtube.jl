@@ -26,7 +26,7 @@ function obtain()
         :client_id => client[:client_id],
         :redirect_uri => "http://localhost:8080/",
         :response_type => "code",
-        :scope => "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
+        :scope => "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube"
     )
     authorization_uri = URI(URI(client[:auth_uri]); query)
 
@@ -84,6 +84,14 @@ function get(endpoint, client::YoutubeClient; query = Dict{Symbol, String}())
     HTTP.get("https://youtube.googleapis.com/youtube/v3/" * endpoint, headers(client); query)
 end
 
+function put(endpoint, client, data; query = Dict{Symbol, String}())
+    body = JSON3.write(data)
+    let headers = headers(client)
+        headers[Symbol("Content-Type")] = "application/json"
+        HTTP.put("https://youtube.googleapis.com/youtube/v3/" * endpoint, headers, body; query)
+    end
+end
+
 function channels(client::YoutubeClient; query = Dict{Symbol, String}())
     JSON3.read(get("channels", client; query).body)
 end
@@ -105,7 +113,7 @@ function list_playlist(client, playlistId)
     items = JSON3.Object[]
     nextPageToken = ""
     while true
-        query = Dict{Symbol, String}(:part => "id,status,contentDetails", :playlistId => playlistId, :maxResults => "50")
+        query = Dict{Symbol, String}(:part => "id,status,contentDetails,snippet", :playlistId => playlistId, :maxResults => "50")
         if !isempty(nextPageToken)
             query[:pageToken] = nextPageToken
         end
@@ -140,5 +148,23 @@ function find_juliacon2022_videos(items)
         publishedAt >= DateTime("2022-07-04")
     end
 end
+
+# status.publishAt – If you set a value for this property, you must also set the status.privacyStatus property to private.
+
+function video_update!(client, id, parts)
+    data = Dict{Symbol, Any}(
+        :kind => "youtube#video",
+        :id => id
+    )
+
+    for (key, val) in parts
+        data[key] = val
+    end
+
+    partString = join(keys(parts), ",")
+
+    put("videos", client, data, query=Dict(:part=>partString))
+end
+
 
 # # Update Youtube description with info from airtable
