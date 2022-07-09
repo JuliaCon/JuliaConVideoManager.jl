@@ -44,7 +44,7 @@ function collect_table_update(table, ptalx_to_yt)
     found_youtube_ids = Dict{String, String}()
 
     for record in table
-        pretalx_id = record[:fields]["Pretalx ID"]
+        pretalx_id = record[:fields][Symbol("Pretalx ID")]
         yt = Base.get(ptalx_to_yt, pretalx_id, nothing)
         if yt !== nothing
             new_record = Dict(
@@ -62,10 +62,6 @@ function collect_table_update(table, ptalx_to_yt)
     return records_to_update, found_youtube_ids
 end
 
-records_to_update, found_youtube_ids = collect_table_update(table, ptalx_to_yt)
-
-Airtable.patch(baseId, sheet1Id, Dict(:records => records_to_update))
-
 function publish(client, found_youtube_ids)
     for (id, _) in found_youtube_ids
         parts = Dict(
@@ -74,8 +70,18 @@ function publish(client, found_youtube_ids)
             ),
         )
 
-        @show video_update!(client, id, parts)
+        resp = video_update!(client, id, parts)
+        if resp.status != 200
+            @warn "Update failed" id resp
+        end
     end
 end
 
-publish(client, found_youtube_ids)
+records_to_update, found_youtube_ids = collect_table_update(table, ptalx_to_yt)
+
+if !isempty(records_to_update)
+    Airtable.update!(baseId, sheet1Id, records_to_update)
+    publish(client, found_youtube_ids)
+else
+    @info "No records found in need of update"
+end
