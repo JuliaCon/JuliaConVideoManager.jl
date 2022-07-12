@@ -45,7 +45,9 @@ module Airtable
     function update!(baseId, sheetId, records)
         for part in Iterators.partition(records, 10)
             resp = patch(baseId, sheetId, Dict(:records=>part))
-            @show resp
+            if resp.status != 200
+                @warn "Update failed" baseId sheetId part
+            end
         end
     end
 end

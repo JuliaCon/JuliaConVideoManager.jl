@@ -4,6 +4,8 @@ include("Youtube.jl")
 client = load_or_obtain()
 refresh!(client)
 
+const EPOCH = 2
+
 const baseId = "appAeQFpa0ywisJKd"
 const sheet1Id = "tblube5UaXuYqPzDq"
 
@@ -38,7 +40,14 @@ end
 function update_metadata(client, table)
     for record in table
         fields = record[:fields]
+        epoch = fields[Symbol("Epoch")]
         pretalx_id = fields[Symbol("Pretalx ID")]
+        if epoch >= EPOCH
+            @info "Skipping..." pretalx_id epoch
+        end
+        if !haskey(fields, Symbol("Youtube ID"))
+            continue
+        end
         yt_id = Base.get(fields, Symbol("Youtube ID"), nothing)
 
         if yt_id === nothing
@@ -66,11 +75,24 @@ function update_metadata(client, table)
                 :description => yt_desc,
                 :categoryId => "28",
             ),
+            :status => Dict(
+                :privacyStatus => "unlisted",
+                :selfDeclaredMadeForKids => false,
+                :embeddable => true
+            ),
         )
 
         resp = video_update!(client, yt_id, parts)
         if resp.status != 200
             @warn "Update failed" pretalx_id resp
+        else
+            new_record = Dict(
+                :id => record[:id],
+                :fields => Dict(
+                    "Epoch" => EPOCH,
+                )
+            )
+            Airtable.update!(baseId, sheet1Id, [new_record])
         end
     end
 end
