@@ -29,6 +29,7 @@ args = ```
 -c:v libx264
 -preset slow
 -crf 18
+-ar 48000
 -c:a aac
 -b:a 192k
 -movflags +faststart
